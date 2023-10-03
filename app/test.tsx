@@ -1,23 +1,12 @@
 "use client";
 import { ReactNode, useEffect, useId, useMemo, useState } from "react";
-import TextToSVG, { load } from "text-to-svg";
+import { useLyrics } from "./lyrics";
 
 type CharInfo = {
   d: string;
   width: number;
   height: number;
 };
-
-function loadAsync() {
-  return new Promise<TextToSVG>((resolve, reject) => {
-    load("/sm.ttf", (err, textToSvg) => {
-      if (err != null || textToSvg == null) reject(err);
-      else resolve(textToSvg);
-    });
-  });
-}
-
-const tts = loadAsync();
 
 type Props = {
   text: string;
@@ -26,34 +15,30 @@ type Props = {
 export function Test(props: Props): ReactNode {
   const id = useId();
   const chars = useMemo(() => props.text.split(""), [props.text]);
+  const { tts } = useLyrics();
+  const fontSize = 70;
   const [svg, setSvg] = useState<CharInfo[]>([]);
 
   useEffect(() => {
-    const render = async () => {
-      const textToSvg = await tts;
-      const fontSize = 80;
-      const h = textToSvg.getHeight(fontSize);
-      setSvg([]);
+    const h = tts.getHeight(fontSize);
+    setSvg([]);
 
-      for (const char of chars) {
-        const w = textToSvg.getWidth(char, { fontSize });
+    for (const char of chars) {
+      const w = tts.getWidth(char, { fontSize });
 
-        setSvg((s) => [
-          ...s,
-          {
-            d: textToSvg.getD(char, {
-              fontSize,
-              anchor: "left top",
-            }),
-            width: w,
-            height: h,
-          },
-        ]);
-      }
-    };
-
-    render();
-  }, [chars]);
+      setSvg((s) => [
+        ...s,
+        {
+          d: tts.getD(char, {
+            fontSize,
+            anchor: "left top",
+          }),
+          width: w,
+          height: h,
+        },
+      ]);
+    }
+  }, [chars, tts]);
 
   let x = 0;
 

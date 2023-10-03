@@ -14,7 +14,7 @@ export default function Home() {
         font.className
       }
     >
-      <h1 className="text-2xl font-semibold">ふまなまの Project</h1>
+      <h1 className="text-2xl font-semibold mb-8">ふまなまの Project</h1>
       <Lyrics />
     </main>
   );
