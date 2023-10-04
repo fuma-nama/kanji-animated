@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@types/text-to-svg": "^3.1.2",
+    "@types/opentype.js": "^1.3.6",
+    "clsx": "^2.0.0",
     "next": "13.5.3",
+    "opentype.js": "^1.3.4",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "text-to-svg": "^3.1.5"
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.8.2",

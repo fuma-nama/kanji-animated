@@ -1,13 +1,18 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Shippori_Mincho } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"] });
+import clsx from "clsx";
 
 export const metadata: Metadata = {
   title: "Fuma Nama の",
   description: "Something cool",
 };
+
+const font = Shippori_Mincho({
+  weight: "400",
+  subsets: ["latin"],
+});
 
 export default function RootLayout({
   children,
@@ -16,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={clsx(font.className, "text-white bg-black")}>
+        {children}
+      </body>
     </html>
   );
 }

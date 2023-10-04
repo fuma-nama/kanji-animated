@@ -2,13 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-.animated-char {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: strokeOffset 1.3s linear forwards;
-}
-
-@keyframes strokeOffset {
+@keyframes writing-char {
   to {
     stroke-dashoffset: 0;
   }
