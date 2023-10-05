@@ -32,7 +32,7 @@ export function AnimateCanvas() {
       ctx.strokeStyle = ctx.fillStyle = "white";
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      context.vertical = false;
+      context.vertical = true;
       for (const object of objects) {
         object.render();
       }
@@ -42,7 +42,7 @@ export function AnimateCanvas() {
 
     const text = "「死にたいなんて言うなよ。」";
     for (let i = 0; i < text.length; i++) {
-      objects.push(createCharRender(ctx, text.charAt(i), i * 50, 40, i * 50));
+      objects.push(createCharRender(ctx, text.charAt(i), 40, i * 60, i * 50));
     }
 
     loop();
@@ -76,16 +76,21 @@ function createCharRender(
   return {
     render: () => {
       delay -= speed;
-      if (delay < 0) dashOffset -= speed;
+      if (delay < 0) {
+        dashOffset -= speed;
+      }
 
       ctx.save();
       ctx.textBaseline = "top";
       ctx.textAlign = "start";
       ctx.translate(x, y);
+      if (context.vertical && char === "。") {
+        ctx.translate(0, ctx.measureText(char).actualBoundingBoxRight);
+        ctx.rotate(-Math.PI / 2);
+      }
       if (context.vertical && !char.match(regex)) {
+        ctx.translate(ctx.measureText(char).width, 0);
         ctx.rotate(Math.PI / 2);
-        ctx.textBaseline = "alphabetic";
-        ctx.textAlign = "left";
       }
 
       ctx.setLineDash([dashLen - dashOffset, dashOffset - speed]);
