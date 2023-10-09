@@ -54,16 +54,21 @@ export function stretchIn(delay: number, speed = 5): Animation {
   };
 }
 
-export function slideIn(delay: number, speed = 5): Animation {
-  let x = 100;
+export function slideIn(
+  delay: number,
+  speed = 5,
+  type: "x" | "y" = "x"
+): Animation {
+  let v = 100;
   const base = fadeIn(delay, speed);
 
   return {
     beforeRender(ctx, char) {
-      if (delay < 0) x = Math.max(0, x - speed);
+      if (delay < 0) v = Math.max(0, v - speed);
       else delay--;
 
-      ctx.translate(x, 0);
+      if (type === "x") ctx.translate(v, 0);
+      else ctx.translate(0, v);
       base.beforeRender(ctx, char);
     },
     afterRender() {},
