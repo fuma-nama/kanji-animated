@@ -23,11 +23,12 @@ export function AnimateCanvas() {
     const container = containerRef.current;
     const ctx = canvas.getContext("2d")!;
     const fontFamily = getComputedStyle(document.body).fontFamily;
-    const dpr = window.devicePixelRatio || 1;
     const objects: Renderer[] = [];
     let mounted = true;
 
     const init = () => {
+      const dpr = window.devicePixelRatio || 1;
+
       canvas.width = container.clientWidth * dpr;
       canvas.height = container.clientHeight * dpr;
       ctx.font = `50px ${fontFamily}`;
