@@ -1,5 +1,6 @@
 import { Animation } from "./animations";
 import { rotates } from "./meta";
+import { renderAnimationsAfter, renderAnimationsBefore } from "./utils";
 
 export let context = {
   vertical: true,
@@ -9,35 +10,38 @@ export type Renderer = {
   render: () => void;
 };
 
+type CharRendererOptions = Partial<{
+  font: string;
+  animation: Animation | Animation[];
+}>;
+
 export function createCharRender(
   ctx: CanvasRenderingContext2D,
   char: string,
   x: number,
   y: number,
-  animation?: Animation
+  { animation, font }: CharRendererOptions = {}
 ) {
   return {
     render: () => {
       ctx.save();
-      ctx.textBaseline = "top";
-      ctx.textAlign = "start";
-      ctx.translate(x, y);
-      if (context.vertical && rotates.has(char)) {
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "center";
+      if (font) ctx.font = font;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
 
-        ctx.translate(
-          ctx.measureText(char).width / 2,
-          ctx.measureText(char).fontBoundingBoxDescent / 2
-        );
+      ctx.translate(
+        x + ctx.measureText(char).width / 2,
+        y + ctx.measureText(char).fontBoundingBoxDescent / 2
+      );
+      if (context.vertical && rotates.has(char)) {
         ctx.rotate(rotates.get(char)!);
       }
 
-      animation?.beforeRender(ctx, char);
+      if (animation) renderAnimationsBefore(ctx, char, animation);
 
       ctx.fillText(char, 0, 0);
 
-      animation?.afterRender(ctx, char);
+      if (animation) renderAnimationsAfter(ctx, char, animation);
       ctx.restore();
     },
   };
@@ -49,9 +53,9 @@ export function createCharTypingRender(
   x: number,
   y: number,
   delay: number,
-  animation?: Animation
+  options: CharRendererOptions
 ) {
-  const base = createCharRender(ctx, char, x, y, animation);
+  const base = createCharRender(ctx, char, x, y, options);
 
   return {
     render: () => {
