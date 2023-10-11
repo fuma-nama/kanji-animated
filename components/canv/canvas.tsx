@@ -277,12 +277,9 @@ export function AnimateCanvas() {
     }
 
     const init = () => {
-      const dpr = window.devicePixelRatio || 1;
-
-      canvas.width = 1920 * dpr;
-      canvas.height = 1080 * dpr;
+      canvas.width = 1920;
+      canvas.height = 1080;
       ctx.strokeStyle = ctx.fillStyle = "white";
-      ctx.scale(dpr, dpr);
     };
 
     const loop = () => {
