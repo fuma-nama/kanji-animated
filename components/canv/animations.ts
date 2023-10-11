@@ -1,3 +1,5 @@
+import { renderAnimationsAfter, renderAnimationsBefore } from "./utils";
+
 export type Animation = {
   beforeRender: (ctx: CanvasRenderingContext2D, char: string) => void;
   afterRender: (ctx: CanvasRenderingContext2D, char: string) => void;
@@ -38,29 +40,56 @@ export function fadeIn(delay: number, speed = 5): Animation {
   };
 }
 
-export function stretchIn(delay: number, speed = 5): Animation {
-  let scaleX = 8;
-  const base = fadeIn(delay, speed);
+export function scaleIn(
+  delay: number,
+  speed = 5,
+  {
+    type = "x",
+    sub = [fadeIn(delay, speed)],
+    from = 8,
+  }: Partial<{
+    from: number;
+    sub: Animation[];
+    type: "x" | "y" | "all";
+  }> = {}
+): Animation {
+  let scale = from;
 
   return {
     beforeRender(ctx, char) {
-      if (delay < 0) scaleX = Math.max(1, scaleX - speed / 10);
+      if (delay < 0) scale = Math.max(1, scale - speed / 10);
       else delay--;
 
-      ctx.scale(scaleX, 1);
-      base.beforeRender(ctx, char);
+      switch (type) {
+        case "x":
+          ctx.scale(scale, 1);
+          break;
+        case "y":
+          ctx.scale(1, scale);
+          break;
+        default:
+          ctx.scale(scale, scale);
+      }
+      renderAnimationsBefore(ctx, char, sub);
     },
-    afterRender() {},
+    afterRender(ctx, char) {
+      renderAnimationsAfter(ctx, char, sub);
+    },
   };
 }
 
 export function slideIn(
   delay: number,
   speed = 5,
-  type: "x" | "y" = "x"
+  {
+    type = "x",
+    sub = [fadeIn(delay, speed)],
+  }: Partial<{
+    sub: Animation[];
+    type: "x" | "y";
+  }> = {}
 ): Animation {
   let v = 100;
-  const base = fadeIn(delay, speed);
 
   return {
     beforeRender(ctx, char) {
@@ -69,8 +98,10 @@ export function slideIn(
 
       if (type === "x") ctx.translate(v, 0);
       else ctx.translate(0, v);
-      base.beforeRender(ctx, char);
+      renderAnimationsBefore(ctx, char, sub);
     },
-    afterRender() {},
+    afterRender(ctx, char) {
+      renderAnimationsAfter(ctx, char, sub);
+    },
   };
 }
