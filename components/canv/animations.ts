@@ -43,9 +43,9 @@ export function scaleIn(
   delay: number,
   duration = 1,
   {
-    type = "x",
+    type = "all",
     sub = [fadeIn(delay, duration)],
-    from = 8,
+    from = 2,
   }: Partial<{
     from: number;
     sub: Animation[];
@@ -82,8 +82,8 @@ export function slideIn(
   duration = 1,
   {
     type = "x",
-    offset = 8,
-    sub = [fadeIn(delay, duration)],
+    offset = 60,
+    sub = [fadeIn(delay, duration * 1.5)],
   }: Partial<{
     sub: Animation[];
     offset: number;
