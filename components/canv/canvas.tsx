@@ -242,10 +242,11 @@ const createScript = (): Script => {
       currentIndex++;
     }
 
-    ctx.translate(
-      0,
-      ((timestamp - movementOrigin) / audio.duration) * 100 * movementValue
-    );
+    if (timestamp > movementOrigin)
+      ctx.translate(
+        0,
+        ((timestamp - movementOrigin) / audio.duration) * 100 * movementValue
+      );
 
     return objects;
   };
@@ -311,15 +312,14 @@ export function AnimateCanvas() {
   }, []);
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center">
-      <p className="absolute left-16 bottom-8 select-none touch-none pointer-events-none">
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+      onClick={onClick}
+    >
+      <p className="absolute left-16 bottom-8 text-sm select-none touch-none pointer-events-none">
         {second ? `${second}s` : "Click to Play"}
       </p>
-      <canvas
-        ref={ref}
-        className="aspect-video max-w-full max-h-full"
-        onClick={onClick}
-      />
+      <canvas ref={ref} className="aspect-video max-w-full max-h-full" />
     </div>
   );
 }
