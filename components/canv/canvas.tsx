@@ -1,12 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { writing, fadeIn, scaleIn, slideIn } from "./animations";
-import {
-  Renderer,
-  context,
-  createCharRender,
-  createCharTypingRender,
-} from "./renders";
+import { writing } from "./animations";
+import { Renderer, context, createCharRender } from "./renders";
 
 type TimelineItem =
   | {
@@ -124,7 +119,7 @@ const timeline: TimelineItem[] = [
   {
     type: "lyrics",
     time: 55.5,
-    x: 1000,
+    x: 980,
     y: 860,
     text: "ナイフを持って走った。",
   },
@@ -189,16 +184,90 @@ const timeline: TimelineItem[] = [
 
 const minW = 1900;
 
+type Script = (
+  ctx: CanvasRenderingContext2D,
+  audio: HTMLAudioElement | null | undefined
+) => Renderer[];
+
+const createScript = (): Script => {
+  const fontFamily = getComputedStyle(document.body).fontFamily;
+  let objects: Renderer[] = [];
+  let currentIndex = 0;
+  let y = 0;
+  let currentMove = 0;
+
+  const reset = () => {
+    currentIndex = 0;
+    y = 0;
+    currentMove = 0;
+    objects = [];
+  };
+
+  return (ctx, audio) => {
+    context.vertical = true;
+    ctx.font = `16px ${fontFamily}`;
+    ctx.fillText(
+      audio == null || audio.paused
+        ? "Click to Play"
+        : `${Math.round(audio.currentTime)}s`,
+      70,
+      ctx.canvas.height - 295
+    );
+    ctx.translate(0, y);
+
+    if (audio?.ended) reset();
+    if (!audio || audio.paused) {
+      return objects;
+    }
+
+    const timestamp = audio.currentTime;
+
+    while (
+      currentIndex < timeline.length &&
+      timestamp > timeline[currentIndex].time
+    ) {
+      const item = timeline[currentIndex];
+      if (item.type === "lyrics") {
+        for (let i = 0; i < item.text.length; i++) {
+          const fontSize = item.fontSize ?? 38;
+
+          objects.push(
+            createCharRender(
+              ctx,
+              item.text.charAt(i),
+              item.x,
+              i * (fontSize + 8) + item.y,
+              {
+                animation: writing(i * 10),
+                font: `${fontSize}px ${fontFamily}`,
+              }
+            )
+          );
+        }
+      }
+
+      if (item.type === "move") {
+        currentMove = item.v;
+      }
+
+      currentIndex++;
+    }
+
+    y += currentMove;
+    return objects;
+  };
+};
+
 export function AnimateCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>();
 
   const onClick = () => {
-    if (!audioRef.current) return;
-    audioRef.current.paused
-      ? audioRef.current.play()
-      : audioRef.current.pause();
+    const audio = audioRef.current;
+    if (!audio || audio.readyState < 3) return;
+
+    audio.paused ? audio.play() : audio.pause();
   };
 
   useEffect(() => {
@@ -206,9 +275,8 @@ export function AnimateCanvas() {
     const canvas = ref.current;
     const container = containerRef.current;
     const ctx = canvas.getContext("2d")!;
-    const fontFamily = getComputedStyle(document.body).fontFamily;
-    const objects: Renderer[] = [];
     let mounted = true;
+    const script = createScript();
 
     if (!audioRef.current) {
       audioRef.current = new Audio("/audio-short.mp3");
@@ -228,67 +296,12 @@ export function AnimateCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       init();
 
-      script();
+      const objects = script(ctx, audioRef.current);
       for (const object of objects) {
         object.render();
       }
 
       requestAnimationFrame(loop);
-    };
-
-    let currentIndex = 0;
-    let y = 0;
-    let currentMove = 0;
-    const script = () => {
-      const audio = audioRef.current;
-
-      context.vertical = true;
-      ctx.font = `16px ${fontFamily}`;
-      ctx.fillText(
-        audio == null || audio.paused
-          ? "Click to Play"
-          : `${Math.round(audio.currentTime)}s`,
-        70,
-        canvas.height - 295
-      );
-      ctx.translate(0, y);
-
-      if (!audio || audio.paused) return;
-
-      const timestamp = audio.currentTime;
-
-      while (
-        currentIndex < timeline.length &&
-        timestamp > timeline[currentIndex].time
-      ) {
-        const item = timeline[currentIndex];
-        if (item.type === "lyrics") {
-          for (let i = 0; i < item.text.length; i++) {
-            const fontSize = item.fontSize ?? 35;
-
-            objects.push(
-              createCharRender(
-                ctx,
-                item.text.charAt(i),
-                item.x,
-                i * (fontSize + 8) + item.y,
-                {
-                  animation: writing(i * 10),
-                  font: `${fontSize}px ${fontFamily}`,
-                }
-              )
-            );
-          }
-        }
-
-        if (item.type === "move") {
-          currentMove = item.v;
-        }
-
-        currentIndex++;
-      }
-
-      y += currentMove;
     };
 
     loop();
