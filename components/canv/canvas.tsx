@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { writing } from "./animations";
-import { Renderer, context, createCharRender } from "./renders";
+import { Renderer, createCharRender } from "./renders";
+import { context } from "./meta";
 
 type TimelineItem =
   | {
@@ -19,6 +20,11 @@ type TimelineItem =
     };
 
 const timeline: TimelineItem[] = [
+  {
+    type: "move",
+    time: 0,
+    v: 0,
+  },
   {
     type: "lyrics",
     time: 20,
@@ -78,7 +84,7 @@ const timeline: TimelineItem[] = [
   {
     type: "move",
     time: 39,
-    v: -0.6,
+    v: -30,
   },
   {
     type: "lyrics",
@@ -161,14 +167,14 @@ const timeline: TimelineItem[] = [
   {
     type: "lyrics",
     time: 70,
-    x: 780,
+    x: 740,
     y: 1400,
     text: "軽々しく死にたいだとか",
   },
   {
     type: "lyrics",
     time: 72,
-    x: 1200,
+    x: 1120,
     y: 1420,
     text: "軽々しく命を見てる僕らは",
   },
@@ -182,8 +188,6 @@ const timeline: TimelineItem[] = [
   },
 ];
 
-const minW = 1900;
-
 type Script = (
   ctx: CanvasRenderingContext2D,
   audio: HTMLAudioElement | null | undefined
@@ -193,34 +197,18 @@ const createScript = (): Script => {
   const fontFamily = getComputedStyle(document.body).fontFamily;
   let objects: Renderer[] = [];
   let currentIndex = 0;
-  let y = 0;
-  let currentMove = 0;
+  let movementOrigin = 0;
+  let movementValue = 0;
 
-  const reset = () => {
-    currentIndex = 0;
-    y = 0;
-    currentMove = 0;
-    objects = [];
-  };
+  const reset = () => {};
 
   return (ctx, audio) => {
-    context.vertical = true;
-    ctx.font = `16px ${fontFamily}`;
-    ctx.fillText(
-      audio == null || audio.paused
-        ? "Click to Play"
-        : `${Math.round(audio.currentTime)}s`,
-      70,
-      ctx.canvas.height - 295
-    );
-    ctx.translate(0, y);
-
-    if (audio?.ended) reset();
-    if (!audio || audio.paused) {
-      return objects;
-    }
-
+    if (!audio) return objects;
+    if (audio.ended) reset();
     const timestamp = audio.currentTime;
+
+    context.vertical = true;
+    context.time = timestamp;
 
     while (
       currentIndex < timeline.length &&
@@ -238,7 +226,7 @@ const createScript = (): Script => {
               item.x,
               i * (fontSize + 8) + item.y,
               {
-                animation: writing(i * 10),
+                animation: writing(i * 0.1 + item.time - context.time),
                 font: `${fontSize}px ${fontFamily}`,
               }
             )
@@ -247,21 +235,26 @@ const createScript = (): Script => {
       }
 
       if (item.type === "move") {
-        currentMove = item.v;
+        movementOrigin = item.time;
+        movementValue = item.v;
       }
 
       currentIndex++;
     }
 
-    y += currentMove;
+    ctx.translate(
+      0,
+      ((timestamp - movementOrigin) / audio.duration) * 100 * movementValue
+    );
+
     return objects;
   };
 };
 
 export function AnimateCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>();
+  const [second, setSecond] = useState<number>();
 
   const onClick = () => {
     const audio = audioRef.current;
@@ -271,9 +264,8 @@ export function AnimateCanvas() {
   };
 
   useEffect(() => {
-    if (!ref.current || !containerRef.current) return;
+    if (!ref.current) return;
     const canvas = ref.current;
-    const container = containerRef.current;
     const ctx = canvas.getContext("2d")!;
     let mounted = true;
     const script = createScript();
@@ -285,8 +277,8 @@ export function AnimateCanvas() {
     const init = () => {
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = container.clientWidth * dpr;
-      canvas.height = container.clientHeight * dpr;
+      canvas.width = 1920 * dpr;
+      canvas.height = 1080 * dpr;
       ctx.strokeStyle = ctx.fillStyle = "white";
       ctx.scale(dpr, dpr);
     };
@@ -295,6 +287,14 @@ export function AnimateCanvas() {
       if (!mounted) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       init();
+
+      const audio = audioRef.current;
+
+      setSecond(
+        audio == null || audio.paused
+          ? undefined
+          : Math.round(audio.currentTime)
+      );
 
       const objects = script(ctx, audioRef.current);
       for (const object of objects) {
@@ -311,8 +311,15 @@ export function AnimateCanvas() {
   }, []);
 
   return (
-    <div ref={containerRef} className="absolute inset-0">
-      <canvas ref={ref} className="w-full h-full" onClick={onClick} />
+    <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <p className="absolute left-16 bottom-8 select-none touch-none pointer-events-none">
+        {second ? `${second}s` : "Click to Play"}
+      </p>
+      <canvas
+        ref={ref}
+        className="aspect-video max-w-full max-h-full"
+        onClick={onClick}
+      />
     </div>
   );
 }

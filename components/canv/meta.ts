@@ -5,3 +5,8 @@ export const rotates = new Map(
     "。": -Math.PI,
   })
 );
+
+export let context = {
+  time: 0,
+  vertical: true,
+};

@@ -1,3 +1,4 @@
+import { context } from "./meta";
 import { renderAnimationsAfter, renderAnimationsBefore } from "./utils";
 
 export type Animation = {
@@ -5,20 +6,18 @@ export type Animation = {
   afterRender: (ctx: CanvasRenderingContext2D, char: string) => void;
 };
 
-export function writing(delay: number, speed = 5): Animation {
-  let dashLen = 220,
-    dashOffset = dashLen;
+export function writing(delay: number, duration = 1): Animation {
+  const startTime = context.time + delay,
+    endTime = context.time + delay + duration;
+  const dashLen = 220;
 
   return {
     beforeRender(ctx) {
-      if (delay < 0) {
-        dashOffset -= speed;
-      } else delay--;
-
       ctx.fillStyle = "black";
     },
     afterRender(ctx, char) {
-      ctx.setLineDash([dashLen - dashOffset, dashOffset - speed]);
+      const offset = getTimeValue(startTime, endTime, dashLen);
+      ctx.setLineDash([offset, dashLen - offset]);
       ctx.lineWidth = 10;
       ctx.globalCompositeOperation = "source-atop";
       ctx.strokeText(char, 0, 0);
@@ -26,13 +25,13 @@ export function writing(delay: number, speed = 5): Animation {
   };
 }
 
-export function fadeIn(delay: number, speed = 5): Animation {
-  let opacity = 0;
+export function fadeIn(delay: number, duration = 1): Animation {
+  const startTime = context.time + delay,
+    endTime = context.time + delay + duration;
 
   return {
     beforeRender(ctx) {
-      if (delay < 0) opacity += speed;
-      else delay--;
+      const opacity = getTimeValue(startTime, endTime, 100);
 
       ctx.fillStyle = `rgba(255,255,255,${opacity / 100})`;
     },
@@ -42,10 +41,10 @@ export function fadeIn(delay: number, speed = 5): Animation {
 
 export function scaleIn(
   delay: number,
-  speed = 5,
+  duration = 1,
   {
     type = "x",
-    sub = [fadeIn(delay, speed)],
+    sub = [fadeIn(delay, duration)],
     from = 8,
   }: Partial<{
     from: number;
@@ -53,12 +52,12 @@ export function scaleIn(
     type: "x" | "y" | "all";
   }> = {}
 ): Animation {
-  let scale = from;
+  const startTime = context.time + delay,
+    endTime = context.time + delay + duration;
 
   return {
     beforeRender(ctx, char) {
-      if (delay < 0) scale = Math.max(1, scale - speed / 10);
-      else delay--;
+      const scale = from - getTimeValue(startTime, endTime, from - 1);
 
       switch (type) {
         case "x":
@@ -80,21 +79,23 @@ export function scaleIn(
 
 export function slideIn(
   delay: number,
-  speed = 5,
+  duration = 1,
   {
     type = "x",
-    sub = [fadeIn(delay, speed)],
+    offset = 8,
+    sub = [fadeIn(delay, duration)],
   }: Partial<{
     sub: Animation[];
+    offset: number;
     type: "x" | "y";
   }> = {}
 ): Animation {
-  let v = 100;
+  const startTime = context.time + delay,
+    endTime = context.time + delay + duration;
 
   return {
     beforeRender(ctx, char) {
-      if (delay < 0) v = Math.max(0, v - speed);
-      else delay--;
+      const v = offset - getTimeValue(startTime, endTime, offset);
 
       if (type === "x") ctx.translate(v, 0);
       else ctx.translate(0, v);
@@ -104,4 +105,10 @@ export function slideIn(
       renderAnimationsAfter(ctx, char, sub);
     },
   };
+}
+
+function getTimeValue(start: number, end: number, value: number): number {
+  if (context.time < start) return 0;
+  const per = Math.min((context.time - start) / (end - start), 1);
+  return value * per;
 }

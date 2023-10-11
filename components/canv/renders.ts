@@ -1,10 +1,6 @@
 import { Animation } from "./animations";
-import { rotates } from "./meta";
+import { context, rotates } from "./meta";
 import { renderAnimationsAfter, renderAnimationsBefore } from "./utils";
-
-export let context = {
-  vertical: true,
-};
 
 export type Renderer = {
   render: () => void;

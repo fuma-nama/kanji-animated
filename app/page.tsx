@@ -19,7 +19,7 @@ export default function Home() {
       <a
         href="https://youtu.be/0HYm60Mjm0k"
         rel="noreferrer noopener"
-        className="absolute bottom-8 right-8 text-lg z-10"
+        className="absolute bottom-8 right-8 z-10 sm:text-lg"
       >
         命に嫌われている - Iori Kanzaki
       </a>
