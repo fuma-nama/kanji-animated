@@ -273,6 +273,7 @@ export function AnimateCanvas() {
 
     if (!audioRef.current) {
       audioRef.current = new Audio("/audio-short.mp3");
+      audioRef.current.load();
     }
 
     const init = () => {
@@ -316,8 +317,8 @@ export function AnimateCanvas() {
       className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
       onClick={onClick}
     >
-      <p className="absolute left-16 bottom-8 text-sm select-none touch-none pointer-events-none">
-        {second ? `${second}s` : "Click to Play"}
+      <p className="absolute left-12 bottom-4 text-sm select-none touch-none pointer-events-none">
+        {second != null ? `${second}s` : "Click to Play"}
       </p>
       <canvas ref={ref} className="aspect-video max-w-full max-h-full" />
     </div>
