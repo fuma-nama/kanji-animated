@@ -1,6 +1,10 @@
 import { Animation } from "./animations";
 import { context, rotates } from "./meta";
-import { renderAnimationsAfter, renderAnimationsBefore } from "./utils";
+import {
+  getTimeValue,
+  renderAnimationsAfter,
+  renderAnimationsBefore,
+} from "./utils";
 
 export type Renderer = {
   render: () => void;
@@ -16,29 +20,11 @@ export function createCharRender(
   char: string,
   x: number,
   y: number,
-  { animation, font }: CharRendererOptions = {}
+  options: CharRendererOptions = {}
 ) {
   return {
     render: () => {
-      ctx.save();
-      if (font) ctx.font = font;
-      ctx.textBaseline = "middle";
-      ctx.textAlign = "center";
-
-      ctx.translate(
-        x + ctx.measureText(char).width / 2,
-        y + ctx.measureText(char).fontBoundingBoxDescent / 2
-      );
-      if (context.vertical && rotates.has(char)) {
-        ctx.rotate(rotates.get(char)!);
-      }
-
-      if (animation) renderAnimationsBefore(ctx, char, animation);
-
-      ctx.fillText(char, 0, 0);
-
-      if (animation) renderAnimationsAfter(ctx, char, animation);
-      ctx.restore();
+      render(ctx, char, x, y, options);
     },
   };
 }
@@ -48,23 +34,62 @@ export function createCharTypingRender(
   char: string,
   x: number,
   y: number,
-  delay: number,
-  options: CharRendererOptions
+  {
+    delay,
+    duration,
+    chars,
+    ...options
+  }: CharRendererOptions & {
+    delay: number;
+    duration: number;
+    /**
+     * Characters to be displayed when typing
+     */
+    chars: string[];
+  }
 ) {
+  const startTime = context.time + delay,
+    endTime = context.time + delay + duration;
   const base = createCharRender(ctx, char, x, y, options);
 
   return {
     render: () => {
-      if (delay > 0) {
-        const metrics = ctx.measureText(char);
-        ctx.textBaseline = "top";
-        ctx.textAlign = "left";
-        if (delay < 10)
-          ctx.fillRect(x, y, metrics.width, metrics.fontBoundingBoxDescent);
-        delay--;
+      if (context.time < startTime) return;
+      const v = Math.round(getTimeValue(startTime, endTime, chars.length));
+
+      if (v >= 0 && v < chars.length) {
+        render(ctx, chars[v], x, y, options);
       } else {
         base.render();
       }
     },
   };
+}
+
+function render(
+  ctx: CanvasRenderingContext2D,
+  char: string,
+  x: number,
+  y: number,
+  { animation, font }: CharRendererOptions
+) {
+  ctx.save();
+  if (font) ctx.font = font;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+
+  ctx.translate(
+    x + ctx.measureText(char).width / 2,
+    y + ctx.measureText(char).fontBoundingBoxDescent / 2
+  );
+  if (context.vertical && rotates.has(char)) {
+    ctx.rotate(rotates.get(char)!);
+  }
+
+  if (animation) renderAnimationsBefore(ctx, char, animation);
+
+  ctx.fillText(char, 0, 0);
+
+  if (animation) renderAnimationsAfter(ctx, char, animation);
+  ctx.restore();
 }

@@ -1,5 +1,9 @@
 import { context } from "./meta";
-import { renderAnimationsAfter, renderAnimationsBefore } from "./utils";
+import {
+  getTimeValue,
+  renderAnimationsAfter,
+  renderAnimationsBefore,
+} from "./utils";
 
 export type Animation = {
   beforeRender: (ctx: CanvasRenderingContext2D, char: string) => void;
@@ -105,10 +109,4 @@ export function slideIn(
       renderAnimationsAfter(ctx, char, sub);
     },
   };
-}
-
-function getTimeValue(start: number, end: number, value: number): number {
-  if (context.time < start) return 0;
-  const per = Math.min((context.time - start) / (end - start), 1);
-  return value * per;
 }

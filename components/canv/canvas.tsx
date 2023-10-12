@@ -1,30 +1,20 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { writing } from "./animations";
-import { Renderer, createCharRender } from "./renders";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { fadeIn } from "./animations";
+import { Renderer, createCharTypingRender } from "./renders";
 import { context } from "./meta";
+import { getTimeIncreaseValue, getTimeValue } from "./utils";
 
-type TimelineItem =
-  | {
-      type: "lyrics";
-      time: number;
-      x: number;
-      y: number;
-      fontSize?: number;
-      text: string;
-    }
-  | {
-      type: "move";
-      v: number;
-      time: number;
-    };
+type TimelineItem = {
+  type: "lyrics";
+  time: number;
+  x: number;
+  y: number;
+  fontSize?: number;
+  text: string;
+};
 
 const timeline: TimelineItem[] = [
-  {
-    type: "move",
-    time: 0,
-    v: 0,
-  },
   {
     type: "lyrics",
     time: 20,
@@ -80,11 +70,6 @@ const timeline: TimelineItem[] = [
     time: 38.5,
     x: 1000,
     text: "他人が生きてもどうでもよくて",
-  },
-  {
-    type: "move",
-    time: 39,
-    v: -30,
   },
   {
     type: "lyrics",
@@ -193,18 +178,18 @@ type Script = (
   audio: HTMLAudioElement | null | undefined
 ) => Renderer[];
 
+const chars =
+  "点フツホ問両今クユセエ何集コト求車こぴ聞東成ひそのな祝質正案ぽけっ右土ぜち月返っせゅ拡首つ斐程やぼ治能こめご彦退".split(
+    ""
+  );
+
 const createScript = (): Script => {
   const fontFamily = getComputedStyle(document.body).fontFamily;
   let objects: Renderer[] = [];
   let currentIndex = 0;
-  let movementOrigin = 0;
-  let movementValue = 0;
-
-  const reset = () => {};
 
   return (ctx, audio) => {
     if (!audio) return objects;
-    if (audio.ended) reset();
     const timestamp = audio.currentTime;
 
     context.vertical = true;
@@ -218,35 +203,37 @@ const createScript = (): Script => {
       if (item.type === "lyrics") {
         for (let i = 0; i < item.text.length; i++) {
           const fontSize = item.fontSize ?? 38;
+          const relativeDelay = i * 0.1 + item.time - context.time;
 
           objects.push(
-            createCharRender(
+            createCharTypingRender(
               ctx,
               item.text.charAt(i),
               item.x,
               i * (fontSize + 8) + item.y,
               {
-                animation: writing(i * 0.1 + item.time - context.time),
+                animation: fadeIn(relativeDelay, 0.1),
                 font: `${fontSize}px ${fontFamily}`,
+                delay: relativeDelay,
+                duration: 0.1,
+                chars: chars.slice(
+                  Math.round(Math.random() * (chars.length - 5))
+                ),
               }
             )
           );
         }
       }
 
-      if (item.type === "move") {
-        movementOrigin = item.time;
-        movementValue = item.v;
-      }
-
       currentIndex++;
     }
 
-    if (timestamp > movementOrigin)
-      ctx.translate(
-        0,
-        ((timestamp - movementOrigin) / audio.duration) * 100 * movementValue
-      );
+    // global settings
+    const alpha = 1 - getTimeValue(audio.duration - 5, audio.duration, 1);
+    const yOffset = getTimeIncreaseValue(39, audio.duration, -35);
+
+    ctx.globalAlpha = alpha;
+    ctx.translate(0, yOffset);
 
     return objects;
   };
@@ -255,11 +242,11 @@ const createScript = (): Script => {
 export function AnimateCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>();
-  const [second, setSecond] = useState<number>();
+  const [ready, setReady] = useState(false);
 
   const onClick = () => {
-    const audio = audioRef.current;
-    if (!audio || audio.readyState < 3) return;
+    if (!ready) return;
+    const audio = audioRef.current!;
 
     audio.paused ? audio.play() : audio.pause();
   };
@@ -272,8 +259,11 @@ export function AnimateCanvas() {
     const script = createScript();
 
     if (!audioRef.current) {
-      audioRef.current = new Audio("/audio-short.mp3");
-      audioRef.current.load();
+      const audio = (audioRef.current = new Audio("/audio-short.mp3"));
+      audio.load();
+      audio.addEventListener("loadeddata", () => {
+        setReady(audio.readyState >= 3);
+      });
     }
 
     const init = () => {
@@ -286,14 +276,6 @@ export function AnimateCanvas() {
       if (!mounted) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       init();
-
-      const audio = audioRef.current;
-
-      setSecond(
-        audio == null || audio.paused
-          ? undefined
-          : Math.round(audio.currentTime)
-      );
 
       const objects = script(ctx, audioRef.current);
       for (const object of objects) {
@@ -310,14 +292,94 @@ export function AnimateCanvas() {
   }, []);
 
   return (
-    <div
-      className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-      onClick={onClick}
-    >
-      <p className="absolute left-12 bottom-4 text-sm select-none touch-none pointer-events-none">
-        {second != null ? `${second}s` : "Click to Play"}
-      </p>
-      <canvas ref={ref} className="aspect-video max-w-full max-h-full" />
-    </div>
+    <>
+      <div
+        className="fixed inset-0 bottom-2 flex items-center justify-center"
+        onClick={onClick}
+      >
+        <canvas ref={ref} className="aspect-video max-w-full max-h-full" />
+      </div>
+      {ready && <Control audio={audioRef.current!} />}
+    </>
+  );
+}
+
+function Control({ audio }: { audio: HTMLAudioElement }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [time, setTime] = useState(0);
+  const [pause, setPause] = useState(true);
+  const isDown = useRef(false);
+
+  useEffect(() => {
+    const onUpdateState = () => {
+      setPause(audio.paused);
+    };
+
+    const onTimeUpdate = () => {
+      setTime(audio.currentTime);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      setTimeFromMouse(e.clientX);
+      e.stopPropagation();
+      e.preventDefault();
+    };
+
+    const onMouseUp = () => {
+      if (!isDown.current) return;
+      isDown.current = false;
+      audio.play();
+    };
+
+    audio.addEventListener("play", onUpdateState);
+    audio.addEventListener("pause", onUpdateState);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+
+    return () => {
+      audio.removeEventListener("play", onUpdateState);
+      audio.removeEventListener("pause", onUpdateState);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [audio]);
+
+  const setTimeFromMouse = useCallback(
+    (x: number) => {
+      if (!isDown.current || !containerRef.current) return;
+      const bounding = containerRef.current.getBoundingClientRect();
+      const percent = (x - bounding.left) / bounding.width;
+
+      audio.currentTime = Math.round(percent * audio.duration);
+    },
+    [audio]
+  );
+
+  return (
+    <>
+      {pause && (
+        <div className="fixed inset-0 flex pointer-events-none select-none">
+          <p className="font-medium m-auto text-center">Click to Play</p>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="fixed w-full h-2 bottom-0 overflow-hidden cursor-pointer"
+        onMouseDown={(e) => {
+          isDown.current = true;
+          audio.pause();
+          setTimeFromMouse(e.clientX);
+        }}
+      >
+        <div
+          className="bg-white h-full"
+          style={{
+            width: `${(time / audio.duration) * 100}%`,
+          }}
+        />
+      </div>
+    </>
   );
 }
