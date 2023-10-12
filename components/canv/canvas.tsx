@@ -320,35 +320,49 @@ function Control({ audio }: { audio: HTMLAudioElement }) {
     };
 
     const onMouseMove = (e: MouseEvent) => {
-      setTimeFromMouse(e.clientX);
+      if (!isDown.current) return;
+      setTimeFromX(e.clientX);
       e.stopPropagation();
       e.preventDefault();
     };
 
-    const onMouseUp = () => {
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDown.current || e.targetTouches.length === 0) return;
+      setTimeFromX(e.targetTouches.item(0)!.clientX);
+      e.stopPropagation();
+      e.preventDefault();
+    };
+
+    const onEnd = (e: Event) => {
       if (!isDown.current) return;
       isDown.current = false;
       audio.play();
+      e.stopPropagation();
+      e.preventDefault();
     };
 
     audio.addEventListener("play", onUpdateState);
     audio.addEventListener("pause", onUpdateState);
     audio.addEventListener("timeupdate", onTimeUpdate);
+    window.addEventListener("touchmove", onTouchMove);
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("touchend", onEnd);
+    window.addEventListener("mouseup", onEnd);
 
     return () => {
       audio.removeEventListener("play", onUpdateState);
       audio.removeEventListener("pause", onUpdateState);
       audio.removeEventListener("timeupdate", onTimeUpdate);
+      window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("mouseup", onEnd);
     };
   }, [audio]);
 
-  const setTimeFromMouse = useCallback(
+  const setTimeFromX = useCallback(
     (x: number) => {
-      if (!isDown.current || !containerRef.current) return;
+      if (!containerRef.current) return;
       const bounding = containerRef.current.getBoundingClientRect();
       const percent = (x - bounding.left) / bounding.width;
 
@@ -367,10 +381,16 @@ function Control({ audio }: { audio: HTMLAudioElement }) {
       <div
         ref={containerRef}
         className="fixed w-full h-2 bottom-0 overflow-hidden cursor-pointer"
+        onTouchStart={(e) => {
+          if (e.targetTouches.length === 0) return;
+          isDown.current = true;
+          audio.pause();
+          setTimeFromX(e.targetTouches.item(0)!.clientX);
+        }}
         onMouseDown={(e) => {
           isDown.current = true;
           audio.pause();
-          setTimeFromMouse(e.clientX);
+          setTimeFromX(e.clientX);
         }}
       >
         <div

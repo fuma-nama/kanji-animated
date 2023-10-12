@@ -2,11 +2,11 @@ import { AnimateCanvas } from "@/components/canv/canvas";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center px-8 py-20 overflow-x-hidden">
+    <main>
       <a
         href="https://github.com/fuma-nama/kanji-animated"
         rel="noreferrer noopener"
-        className="absolute bottom-4 left-4 z-10"
+        className="fixed bottom-4 left-4 z-10"
       >
         <svg role="img" viewBox="0 0 24 24" width={24} height={24}>
           <title>GitHub</title>
@@ -19,7 +19,7 @@ export default function Home() {
       <a
         href="https://youtu.be/0HYm60Mjm0k"
         rel="noreferrer noopener"
-        className="absolute bottom-4 right-4 text-sm z-10 sm:text-lg"
+        className="fixed bottom-4 right-4 text-sm z-10 sm:text-lg"
       >
         命に嫌われている - Iori Kanzaki
       </a>
