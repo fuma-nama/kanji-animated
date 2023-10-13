@@ -320,7 +320,7 @@ export function AnimateCanvas() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [timeline]);
 
   return (
     <>
