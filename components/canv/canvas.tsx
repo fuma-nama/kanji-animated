@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fadeIn } from "./animations";
-import { Renderer, createCharTypingRender } from "./renders";
+import { Renderer, createCharRender, createCharTypingRender } from "./renders";
 import { context } from "./meta";
 import { getTimeIncreaseValue, getTimeValue } from "./utils";
 
@@ -12,9 +12,19 @@ type TimelineItem = {
   y: number;
   fontSize?: number;
   text: string;
+  animation?: "none" | "type";
 };
 
 const timeline: TimelineItem[] = [
+  {
+    type: "lyrics",
+    time: 10.5,
+    x: 1760,
+    y: 120,
+    text: "命に嫌われている。",
+    fontSize: 80,
+    animation: "none",
+  },
   {
     type: "lyrics",
     time: 20,
@@ -102,15 +112,21 @@ const timeline: TimelineItem[] = [
   {
     type: "lyrics",
     time: 50.5,
-    x: 1580,
-    y: 700,
+    x: 100,
+    y: 780,
     text: "それを嘆いて誰かが歌って",
   },
-  { type: "lyrics", time: 53, x: 1120, y: 760, text: "それに感化された少年が" },
+  {
+    type: "lyrics",
+    time: 53,
+    x: 1120,
+    y: 760,
+    text: "それに感化された少年が",
+  },
   {
     type: "lyrics",
     time: 55.5,
-    x: 980,
+    x: 900,
     y: 860,
     text: "ナイフを持って走った。",
   },
@@ -131,7 +147,7 @@ const timeline: TimelineItem[] = [
   {
     type: "lyrics",
     time: 62,
-    x: 120,
+    x: 180,
     y: 1100,
     text: "いつも誰かを殺したい歌を",
   },
@@ -192,6 +208,7 @@ const createScript = (): Script => {
     if (!audio) return objects;
     const timestamp = audio.currentTime;
 
+    context.ctx = ctx;
     context.vertical = true;
     context.time = timestamp;
 
@@ -203,11 +220,22 @@ const createScript = (): Script => {
       if (item.type === "lyrics") {
         for (let i = 0; i < item.text.length; i++) {
           const fontSize = item.fontSize ?? 38;
-          const relativeDelay = i * 0.1 + item.time - context.time;
+          let renderer: Renderer;
 
-          objects.push(
-            createCharTypingRender(
-              ctx,
+          if (item.animation === "none") {
+            renderer = createCharRender(
+              item.text.charAt(i),
+              item.x,
+              i * (fontSize + 8) + item.y,
+              {
+                animation: fadeIn(item.time - context.time, 0),
+                font: `${fontSize}px ${fontFamily}`,
+              }
+            );
+          } else {
+            const relativeDelay = i * 0.1 + item.time - context.time;
+
+            renderer = createCharTypingRender(
               item.text.charAt(i),
               item.x,
               i * (fontSize + 8) + item.y,
@@ -220,8 +248,10 @@ const createScript = (): Script => {
                   Math.round(Math.random() * (chars.length - 5))
                 ),
               }
-            )
-          );
+            );
+          }
+
+          objects.push(renderer);
         }
       }
 
@@ -261,6 +291,7 @@ export function AnimateCanvas() {
     if (!audioRef.current) {
       const audio = (audioRef.current = new Audio("/audio-short.mp3"));
       audio.load();
+      audio.volume = 0.8;
       audio.addEventListener("loadeddata", () => {
         setReady(audio.readyState >= 3);
       });

@@ -2,23 +2,20 @@ import { Animation } from "./animations";
 import { context } from "./meta";
 
 export function renderAnimationsBefore(
-  ctx: CanvasRenderingContext2D,
   char: string,
   animations: Animation | Animation[]
 ) {
   if (Array.isArray(animations))
-    animations.forEach((v) => v.beforeRender(ctx, char));
-  else animations.beforeRender(ctx, char);
+    animations.forEach((v) => v.beforeRender(char));
+  else animations.beforeRender(char);
 }
 
 export function renderAnimationsAfter(
-  ctx: CanvasRenderingContext2D,
   char: string,
   animations: Animation | Animation[]
 ) {
-  if (Array.isArray(animations))
-    animations.forEach((v) => v.afterRender(ctx, char));
-  else animations.afterRender(ctx, char);
+  if (Array.isArray(animations)) animations.forEach((v) => v.afterRender(char));
+  else animations.afterRender(char);
 }
 
 /**

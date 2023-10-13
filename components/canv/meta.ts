@@ -6,7 +6,18 @@ export const rotates = new Map(
   })
 );
 
-export let context = {
+type Context = {
+  ctx: CanvasRenderingContext2D | null;
+  time: number;
+  vertical: boolean;
+};
+
+export let context: Context = {
+  ctx: null,
   time: 0,
   vertical: true,
 };
+
+export function requireContext() {
+  return context.ctx!;
+}

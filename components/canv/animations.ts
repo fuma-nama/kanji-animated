@@ -1,4 +1,4 @@
-import { context } from "./meta";
+import { context, requireContext } from "./meta";
 import {
   getTimeValue,
   renderAnimationsAfter,
@@ -6,8 +6,8 @@ import {
 } from "./utils";
 
 export type Animation = {
-  beforeRender: (ctx: CanvasRenderingContext2D, char: string) => void;
-  afterRender: (ctx: CanvasRenderingContext2D, char: string) => void;
+  beforeRender: (char: string) => void;
+  afterRender: (char: string) => void;
 };
 
 export function writing(delay: number, duration = 1): Animation {
@@ -16,10 +16,11 @@ export function writing(delay: number, duration = 1): Animation {
   const dashLen = 220;
 
   return {
-    beforeRender(ctx) {
-      ctx.fillStyle = "black";
+    beforeRender() {
+      requireContext().fillStyle = "black";
     },
-    afterRender(ctx, char) {
+    afterRender(char) {
+      const ctx = requireContext();
       const offset = getTimeValue(startTime, endTime, dashLen);
       ctx.setLineDash([offset, dashLen - offset]);
       ctx.lineWidth = 10;
@@ -34,7 +35,8 @@ export function fadeIn(delay: number, duration = 1): Animation {
     endTime = context.time + delay + duration;
 
   return {
-    beforeRender(ctx) {
+    beforeRender() {
+      const ctx = requireContext();
       const opacity = getTimeValue(startTime, endTime, 100);
 
       ctx.fillStyle = `rgba(255,255,255,${opacity / 100})`;
@@ -60,7 +62,8 @@ export function scaleIn(
     endTime = context.time + delay + duration;
 
   return {
-    beforeRender(ctx, char) {
+    beforeRender(char) {
+      const ctx = requireContext();
       const scale = from - getTimeValue(startTime, endTime, from - 1);
 
       switch (type) {
@@ -73,10 +76,10 @@ export function scaleIn(
         default:
           ctx.scale(scale, scale);
       }
-      renderAnimationsBefore(ctx, char, sub);
+      renderAnimationsBefore(char, sub);
     },
-    afterRender(ctx, char) {
-      renderAnimationsAfter(ctx, char, sub);
+    afterRender(char) {
+      renderAnimationsAfter(char, sub);
     },
   };
 }
@@ -98,15 +101,16 @@ export function slideIn(
     endTime = context.time + delay + duration;
 
   return {
-    beforeRender(ctx, char) {
+    beforeRender(char) {
+      const ctx = requireContext();
       const v = offset - getTimeValue(startTime, endTime, offset);
 
       if (type === "x") ctx.translate(v, 0);
       else ctx.translate(0, v);
-      renderAnimationsBefore(ctx, char, sub);
+      renderAnimationsBefore(char, sub);
     },
-    afterRender(ctx, char) {
-      renderAnimationsAfter(ctx, char, sub);
+    afterRender(char) {
+      renderAnimationsAfter(char, sub);
     },
   };
 }

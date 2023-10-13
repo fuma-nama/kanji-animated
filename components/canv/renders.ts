@@ -1,5 +1,5 @@
 import { Animation } from "./animations";
-import { context, rotates } from "./meta";
+import { context, requireContext, rotates } from "./meta";
 import {
   getTimeValue,
   renderAnimationsAfter,
@@ -16,7 +16,6 @@ type CharRendererOptions = Partial<{
 }>;
 
 export function createCharRender(
-  ctx: CanvasRenderingContext2D,
   char: string,
   x: number,
   y: number,
@@ -24,13 +23,12 @@ export function createCharRender(
 ) {
   return {
     render: () => {
-      render(ctx, char, x, y, options);
+      render(char, x, y, options);
     },
   };
 }
 
 export function createCharTypingRender(
-  ctx: CanvasRenderingContext2D,
   char: string,
   x: number,
   y: number,
@@ -50,7 +48,6 @@ export function createCharTypingRender(
 ) {
   const startTime = context.time + delay,
     endTime = context.time + delay + duration;
-  const base = createCharRender(ctx, char, x, y, options);
 
   return {
     render: () => {
@@ -58,21 +55,21 @@ export function createCharTypingRender(
       const v = Math.round(getTimeValue(startTime, endTime, chars.length));
 
       if (v >= 0 && v < chars.length) {
-        render(ctx, chars[v], x, y, options);
+        render(chars[v], x, y, options);
       } else {
-        base.render();
+        render(char, x, y, options);
       }
     },
   };
 }
 
 function render(
-  ctx: CanvasRenderingContext2D,
   char: string,
   x: number,
   y: number,
   { animation, font }: CharRendererOptions
 ) {
+  const ctx = requireContext();
   ctx.save();
   if (font) ctx.font = font;
   ctx.textBaseline = "middle";
@@ -86,10 +83,10 @@ function render(
     ctx.rotate(rotates.get(char)!);
   }
 
-  if (animation) renderAnimationsBefore(ctx, char, animation);
+  if (animation) renderAnimationsBefore(char, animation);
 
   ctx.fillText(char, 0, 0);
 
-  if (animation) renderAnimationsAfter(ctx, char, animation);
+  if (animation) renderAnimationsAfter(char, animation);
   ctx.restore();
 }
